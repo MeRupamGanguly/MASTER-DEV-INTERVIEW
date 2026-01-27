@@ -181,6 +181,20 @@ func main() {
 ```
 
 # Slice
+
+A slice is like a flexible view of an array.
+
+A slice in Go is a descriptor that contains three things:
+- Pointer → points to the first element of the underlying array.
+- Length → number of elements currently in the slice.
+- Capacity → maximum number of elements the slice can hold before needing a new array.
+
+It doesn’t hold data itself, but points to an underlying array. Unlike arrays, slices can grow and shrink using append or slicing operations. Slices are reference types → passing a slice to a function does not copy all elements, it just passes a reference. This makes them more efficient. 
+
+Multiple slices can point to the same array. Changing one slice may affect another. When append exceeds capacity, Go allocates a new array (usually doubling size). The slice then points to this new array.
+
+A slice declared without initialization (var s []int) is nil, but still safe to use with append.
+
 ```go
 func main() {
 	a := []int{1, 2, 3}
