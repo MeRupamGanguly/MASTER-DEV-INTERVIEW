@@ -1,36 +1,38 @@
-# Most Used AWS Services and Their Use Cases
+# AWS
 
-## Amazon EC2
+## Most Used AWS Services and Their Use Cases
+
+### Amazon EC2
 AWS EC2, or Elastic Compute Cloud, provides scalable virtual servers in the cloud. It is one of the most fundamental services because it gives organizations complete control over the operating system, networking, and storage. EC2 is used to host web applications, run enterprise workloads, and perform high-performance computing tasks. It supports features like Auto Scaling and Elastic Load Balancing, which allow applications to handle variable traffic efficiently.
 
-## Amazon S3
+### Amazon S3
 Amazon S3, or Simple Storage Service, is a highly durable and scalable object storage platform. It is widely used because it can store unlimited amounts of data at low cost while maintaining high availability. Organizations use S3 for backups, static website hosting, big data analytics, and media storage. Features like versioning, lifecycle policies, and cross-region replication make it suitable for compliance and disaster recovery. In modern architectures, S3 often acts as the backbone of data lakes and integrates seamlessly with services like Athena, Glue, and CloudFront.
 
-## Amazon RDS
+### Amazon RDS
 Amazon RDS, or Relational Database Service, is a managed database service that supports engines such as MySQL, PostgreSQL, Oracle, and SQL Server. RDS is valuable because it automates backups, patching, and scaling, which reduces operational overhead. It is commonly used in transactional applications like e-commerce platforms, ERP systems, and financial applications. RDS supports Multi-AZ deployments for high availability and read replicas for scaling read-heavy workloads. By offloading database management tasks, RDS allows developers to focus on application logic rather than infrastructure.
 
-## AWS Lambda
+### AWS Lambda
 AWS Lambda is a serverless compute service that runs code in response to events without requiring server management. It is widely adopted because it enables event-driven architectures and scales automatically. Lambda is used for automation, lightweight APIs, and IoT data processing. For example, when a file is uploaded to S3, Lambda can trigger a function to process it instantly. Lambda integrates with services like DynamoDB, API Gateway, and CloudWatch, making it central to serverless workflows. It is chosen when organizations want to reduce operational overhead and pay only for actual execution time.
 
-## Amazon DynamoDB
+### Amazon DynamoDB
 Amazon DynamoDB is a fully managed NoSQL database that delivers single-digit millisecond latency at scale. It is designed for applications that require high throughput and predictable performance. DynamoDB is commonly used in gaming, IoT, and real-time analytics. Features like global tables, DynamoDB Streams, and on-demand capacity make it highly scalable and flexible. Organizations choose DynamoDB when relational models are not required but speed and scalability are critical.
 
-## Amazon CloudFront
+### Amazon CloudFront
 Amazon CloudFront is a content delivery network that distributes content globally with low latency. It improves user experience by caching content close to end users. CloudFront is widely used for streaming video, serving static files, and accelerating APIs. It integrates tightly with S3 and EC2, and supports advanced security features like AWS Shield and Web Application Firewall (WAF) to protect against DDoS attacks. Organizations choose CloudFront when they need to deliver content quickly and securely to a global audience.
 
-## AWS IAM
+### AWS IAM
 AWS Identity and Access Management, or IAM, is the core service for managing access to AWS resources. It allows organizations to create users, groups, and roles, and define fine-grained permissions through policies. 
 
-## Amazon VPC
+### Amazon VPC
 Amazon Virtual Private Cloud, or VPC, provides isolated networking environments in AWS. It allows organizations to design their own network topology, including subnets, routing tables, NAT gateways, and VPN connections. VPC is critical for separating workloads, controlling traffic flow, and connecting on-premises environments securely. It is the foundation for hybrid cloud setups and ensures that applications run in a secure and controlled environment. Organizations choose VPC when they need flexibility in networking and strong isolation between workloads.
 
-## Amazon CloudWatch
+### Amazon CloudWatch
 Amazon CloudWatch is the monitoring and observability service for AWS resources and applications. It collects metrics, logs, and events, and provides dashboards and alarms. CloudWatch is used to track performance, detect anomalies, and trigger automated actions. For example, if EC2 instances show unusual CPU spikes, CloudWatch can trigger auto scaling. It integrates with almost every AWS service, making it essential for maintaining visibility and reliability in production systems. Organizations rely on CloudWatch to ensure that their applications remain healthy and responsive.
 
-## Amazon EKS
+### Amazon EKS
 Amazon Elastic Kubernetes Service, or EKS, is a managed Kubernetes service that simplifies container orchestration. It is used for running microservices architectures, where scalability and resilience are critical. EKS handles the complexity of Kubernetes management, including upgrades and scaling, while integrating with IAM, VPC, and CloudWatch for security and observability. Organizations choose EKS when they want to run containerized workloads without managing Kubernetes manually.
 
-## IAM vs Security Groups
+### IAM vs Security Groups
 AWS Identity and Access Management (IAM) and Security Groups (SG) are both security mechanisms, but they operate at different layers. IAM is about *who* can access AWS resources and *what actions* they can perform. It manages users, roles, and policies, enforcing the principle of least privilege. For example, IAM can allow a developer to launch EC2 instances but prevent them from deleting S3 buckets.  
 
 Security Groups, on the other hand, are virtual firewalls that control *network traffic* to and from EC2 instances. They define rules for inbound and outbound traffic based on IP addresses, ports, and protocols. For example, a security group might allow HTTP traffic on port 80 from the internet but restrict SSH access to a specific IP range.  
@@ -39,7 +41,7 @@ In short, IAM secures access at the identity and API level, while Security Group
 
 ---
 
-## Region vs Availability Zones
+### Region vs Availability Zones
 
 AWS Regions and Availability Zones (AZs) are fundamental to AWS’s global infrastructure. A Region is a physical geographic area, such as `us-east-1` in Virginia or `ap-south-1` in Mumbai. Each Region is completely independent, with its own set of services and compliance standards. Organizations choose Regions based on proximity to users, regulatory requirements, or disaster recovery strategies.  
 
@@ -49,7 +51,7 @@ The key difference is that Regions provide geographic separation, while Availabi
 
 ---
 
-## AWS Security Mechanisms: SSH/SCP vs Service Access (S3, SQS)
+### AWS Security Mechanisms: SSH/SCP vs Service Access (S3, SQS)
 
 AWS uses different security models depending on how you connect.  
 
@@ -203,7 +205,7 @@ scp -i my.pem user ec2-user@124:23:21:12
 - FIFO Topic (First-In-First-Out) Strict ordering — messages are delivered exactly as published. Exactly-once delivery — no duplicates. Limited subscriptions — only supports FIFO SQS queues. Lower throughput — up to 300 messages/sec or 10 MB/sec. Use Cases: Financial transactions, inventory updates, workflows needing order.
 
 ---
-# End-to-End AWS Audio Processing Pipeline in Go
+## End-to-End AWS Audio Processing Pipeline in Go
 
 ## Flow
 1. **Client uploads file** → HTTP server stores file in **S3 input bucket** using multipart upload.  
