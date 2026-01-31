@@ -73,6 +73,8 @@ func main() {
 
 With interfaces, you can inject a mock or fake implementation. This allows isolated unit tests without external side effects.
 
+If your service depends on a concrete struct (e.g., *repositories.Repo) rather than an interface RepoContarcts, you cannot easily swap it out for a mock in standard Go. This is because Go is statically typed; if a function expects a *Repo, you cannot pass it a *MockRepo.
+
 ```go
 // Suppose you want to test process. You don’t want to actually write files or hit a real database. You can create a mock implementation:
 type MockDB struct {
@@ -94,7 +96,7 @@ func TestProcess(t *testing.T) {
 
 ```
 
-An empty interface can hold any type of values. name.(type) give us the Type the interface will hold at runtime. or we can use reflect.TypeOf(name)
+An empty interface can hold any type of values. interface_name.(type) give us the Type the interface will hold at runtime. or we can use reflect.TypeOf(name)
 
 ```go
 func describe(i interface{}) {
@@ -106,7 +108,6 @@ func main() {
     describe("hello")
     describe(3.14)
 }
-
 ```
 
 When you use interface{}, you often need to extract the concrete type. This is called Type assertion. It is used to extract the concrete value from an interface type. It tells the Go compiler: I know this interface value is actually of this specific type.
@@ -123,11 +124,29 @@ if ok {
 
 ```
 
-An interface value is a pair: (type, value). If the type is set but the value is nil, the interface itself is not nil. Interviewers love this one because it catches many candidates.
+An interface value is a pair: (type, value). If the type is set but the value is nil, the interface itself is not nil.
 
 ```go
-var db Database = (*FileDB)(nil) // Here, db has type *FileDB but the value is nil.
-fmt.Println(db == nil) // false
+package main
+
+import "fmt"
+
+func main() {
+	// 1. A nil pointer of a concrete type (*int)
+	var ptr *int = nil
+
+	// 2. Wrap that nil pointer in an empty interface
+	var i interface{} = ptr
+
+	// 3. The Comparison
+	fmt.Printf("Is ptr nil? %v\n", ptr == nil) // true
+	fmt.Printf("Is i nil?   %v\n", i == nil)   // false! <--- The "Gotcha"
+
+	// 4. Let's look at the pair (type, value)
+	fmt.Printf("Type: %T, Value: %v\n", i, i) // Type: *int, Value: <nil>
+	
+	fmt.Println(reflect.TypeOf(i)) // *int
+}
 // An interface is nil only if both its type and value are nil. If the type is set but the value is nil, the interface is not nil.
 ```
 
@@ -151,6 +170,16 @@ func main() {
 # Generics
 Generics in Go let you write functions and types that work with many different data types while still being type‑safe. They were introduced in Go 1.18 and are now a core part of the language.
 -  Instead of fixing a function to one type (like int), you can declare a parameter T that stands for “any type.”  You can restrict what types are allowed. For example, comparable means the type supports == and !=. The compiler often figures out the type automatically, so you don’t need to specify it explicitly. Generics are compiled down efficiently, so you don’t lose speed compared to writing separate functions.
+
+When you write a generic function like func Print[T any](v T), the compiler doesn't just leave it as a "hole" to be filled at runtime.
+
+Type Checking: The compiler verifies that the types you pass to the generic function satisfy the Type Constraints (e.g., any, comparable, or a custom interface) at compile time.
+
+Code Generation (Stenciling): The compiler generates specialized versions of your function for the different types you use.
+
+If you call Print[int](10) and Print[string]("hi"), the compiler essentially creates two internal versions of that function: one optimized for int and one for string.
+
+Because it is compile-time, you get Full Type Safety. You cannot pass a string into a generic function constrained to constraints.Integer, and the compiler will stop you before the program ever runs.
 
 ```go
 // T is a type parameter that can be any type
@@ -207,6 +236,33 @@ func main() {
 # Map
 
 A map is a built-in data type that stores key-value pairs. Keys must be of a type that is comparable (e.g., strings, integers, booleans). Values can be of any type.
+
+```go
+package main
+
+import "fmt"
+
+type User struct {
+	Id int
+}
+
+func main() {
+	m := make(map[struct{}]int)
+	//u := User{Id: 2} 
+	m[struct{}{}] = 99
+	m[struct{}{}] = 98 // Because struct{} has no fields, every instance of struct{}{} is identical to every other instance. Therefore: struct{}{} == struct{}{} is always true. A map[struct{}] can effectively only ever hold one single item.
+	fmt.Println(m) // map[{}:98]
+	//m[u] = 9  // ./prog.go:15:4: cannot use u (variable of struct type User) as struct{} value in map index
+
+	fmt.Println(m) // map[{}:98]
+}
+
+```
+
+`m := make(map[*User]string)` // This map uses the memory address (the pointer) as the key. Even if two users have the exact same Id and Name, they are different keys if they live in different spots in memory
+
+`m := make(map[User]string)` // This map uses the content of the struct to determine the key. If two structs have the exact same data in their fields, they are seen as the same key.
+
 The zero value of a map is nil.
 Maps are unordered — iteration order is not guaranteed.
 Maps are reference types: assigning or passing them copies the reference, not the data.

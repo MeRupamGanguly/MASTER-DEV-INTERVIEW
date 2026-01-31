@@ -192,10 +192,13 @@ A slice in Go is a descriptor that contains three things:
 It doesn’t hold data itself, but points to an underlying array. Unlike arrays, slices can grow and shrink using append or slicing operations. Slices are reference types → passing a slice to a function does not copy all elements, it just passes a reference. This makes them more efficient. 
 
 ```go
-var s1 []int
-s2 := []int{}
-fmt.Println(s1 == nil) // true
-fmt.Println(s2 == nil) // false
+func main() {
+	var s []int
+	s2 := []int{}
+	s3 := make([]int, 3)
+	fmt.Println(s, s2, s3) // [] [] [0 0 0]
+	fmt.Println(s == nil, s2 == nil) // true false
+}
 ```
 
 Multiple slices can point to the same array. Changing one slice may affect another. When append exceeds capacity, Go allocates a new array (usually doubling size). The slice then points to this new array.
@@ -218,8 +221,8 @@ func main() {
 	b := a[:2]
 	fmt.Println(a, b) // [1 2 3] [1 2]
 	c := a[1:]
-	fmt.Println(a, b, c)
-	b = append(b, 4, 5, 6) // [1 2 3] [1 2] [2 3]
+	fmt.Println(a, b, c) // [1 2 3] [1 2] [2 3]
+	b = append(b, 4, 5, 6) 
 	b[1] = 99
 	fmt.Println(a, b, c) // [1 2 3] [1 99 4 5 6] [2 3]
 }
@@ -375,6 +378,15 @@ func main() {
 }
 // copy only copies as many elements as the destination slice can hold. It never resizes the destination. That’s why b ends up with [1, 2] instead of [1, 2, 3, 4].
 ```
+
+```go
+func main() {
+	a := []int{1, 2, 3}
+	b := []int{0, 0, 0, 0, 0, 0, 0}
+	copy(b, a)       
+	fmt.Println(a, b) // [1 2 3] [1 2 3 0 0 0 0]
+}
+```
 ```go
 func main() {
 	a := []int{1, 2, 3, 4}
@@ -437,6 +449,7 @@ import "fmt"
 
 func addElement(s []int) {
     s = append(s, 100) // local header updated
+    s[0]=99
     fmt.Println("Inside function:", s, "len:", len(s))
 }
 
@@ -445,11 +458,9 @@ func main() {
     addElement(a)
     fmt.Println("In main:", a, "len:", len(a))
 }
-/*
-Inside addElement, append updates the local slice header (len=3).
-But in main, a still has len=2 because its header wasn’t updated.
-Both slices still point to the same backing array, so if capacity was available, the new element may exist in memory — but a doesn’t “see” it because its header says length=2.
-*/
+// Inside function: [99 2 100] len: 3
+// In main: [1 2] len: 2
+
 ```
 
 ```go
@@ -464,11 +475,17 @@ func addElement(s []int) []int {
 
 func main() {
     a := []int{1, 2}
+    fmt.Printf("a: %v, addr(slice header): %p, addr(backing array): %p-%p\n", a, &a, &a[0], &a[1])
     a = addElement(a) // assign returned slice
     fmt.Println("In main:", a, "len:", len(a))
+    fmt.Printf("a: %v, addr(slice header): %p, addr(backing array): %p-%p\n", a, &a, &a[0], &a[1])
 }
 /*
 Now the updated slice header is returned and assigned back to a.
 Caller sees the new length and can access the appended element.
+
+a: [1 2], addr(slice header): 0xc000010048, addr(backing array): 0xc000012050-0xc000012058
+In main: [1 2 100] len: 3
+a: [1 2 100], addr(slice header): 0xc000010048, addr(backing array): 0xc000102020-0xc000102028
 */
 ```
