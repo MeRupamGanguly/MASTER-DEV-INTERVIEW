@@ -4,15 +4,26 @@
 Channel is used to communicate via sending and receiving data and provide synchronisation between multiple gorountines. If channel have a value then execution blocked until reader reads from the channel. Channel can be buffered, allowing Go-Routines to send multiple values without blocking until the buffer is full.
 
 ```go
-var ch chan int // Declares a channel variable but it’s nil until initialized. You cannot send or receive on a nil channel (blocks forever).
+var ch chan int // Declares a channel variable but it’s nil until initialized via make. You cannot send or receive on a nil channel (blocks forever).
 ch := make(chan int) // Creates a usable unbuffered channel. Send blocks until another goroutine receives, and vice versa.
 ch := make(chan string, 5) // Creates a buffered channel with capacity 5. Allows up to 5 sends without a corresponding receive.
 
 // Unlike maps or slices, Go does not support channel literals like ch := chan int{}. We must use make.
 ch := new(chan int) // Creates a pointer to a nil channel. You still need to initialize it with make before use.
+/*
+ * What it is: Allocates memory for a chan int type, but does not initialize the channel.
+ * Result: ch is of type *chan int (a pointer to a channel).
+ * Default value: Points to a nil channel.
+ */
+```
+```go
+// new gives you a pointer to a chan int, but the channel itself is still nil.
+ch := new(chan int) // type *chan int
+for val := range *ch { //Dereferencing *ch is just a nil channel.
+    fmt.Println(val) //Result: Same as var ch chan int → blocks forever.
+}
 
 ```
-
 ```go
 ch <- 42 // send value into channel
 val := <-ch // receive value from channel
@@ -26,6 +37,11 @@ for val := range ch { // Works until the channel is closed.
 }
 
 ```
+for v := range ch only terminates when the channel is closed.
+
+Trap: Forgetting to close(ch) → goroutine leaks, infinite loop. Only the sender should close a channel. tries to close from the receiver side → panic.
+
+Can you close a channel multiple times?” → Answer: no, second close panics.
 
 ```go
 select { // select lets you wait on multiple channels.
@@ -33,11 +49,12 @@ case msg := <-ch1:
     fmt.Println("Received:", msg)
 case ch2 <- "data":
     fmt.Println("Sent data")
-default:
+default: // forgets default case → goroutine blocks forever.
     fmt.Println("No communication")
 }
 
 ```
+How do you avoid blocking in select?” → Answer: add a default case or use timeouts with time.After
 
 # Go-Routine
 
