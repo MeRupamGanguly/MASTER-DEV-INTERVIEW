@@ -1,3 +1,78 @@
+# Docker
+
+- Docker architecture is built around a client-server model that enables containerization. 
+- At its core, the Docker daemon (server) runs on the host machine and is responsible for building, running, and managing containers. 
+- The Docker client communicates with the daemon using REST APIs or the Docker CLI, allowing users to issue commands like docker run or docker build. 
+- Containers themselves are lightweight, portable units that package applications with their dependencies, running on top of the host operating system through container runtime. 
+- To organize and share container images, Docker uses Docker registries (like Docker Hub), which store pre-built images that can be pulled and deployed. 
+- The architecture also relies on images, which are read-only templates used to create containers, and layers, which make images efficient and reusable by stacking incremental changes. 
+- Together, this architecture provides a scalable, efficient, and consistent environment for application development and deployment across different systems.
+
+Docker and virtual machines (VMs) both provide ways to isolate applications, but their architectures differ fundamentally. 
+- In a VM architecture, each virtual machine runs on a hypervisor and includes a full operating system along with the application and its dependencies. This makes VMs heavier, as they require significant resources to boot and run multiple OS instances. 
+- In contrast, Docker uses a container-based architecture where applications share the host operating system’s kernel but run in isolated user spaces. Containers package only the application and its dependencies, making them lightweight, faster to start, and more resource-efficient. 
+- While VMs provide stronger isolation by virtualizing hardware, Docker achieves efficiency by virtualizing the operating system. 
+- This difference means VMs are well-suited for running diverse operating systems on the same hardware, whereas Docker excels at rapid deployment, scalability, and portability of applications across environments.
+
+`docker version  `
+Shows the installed Docker version (client and server). Useful to confirm compatibility and environment setup.
+
+`docker system info  `
+Displays system-wide information such as OS, number of containers, images, and storage driver. Demonstrates knowledge of Docker internals.
+
+`docker run <image>  `
+Creates and starts a container from a specified image. You can add flags like -d (detached mode), -p (port mapping), and --name (custom container name).
+Example: docker run -d -p 8080:80 nginx runs Nginx in the background, mapping host port 8080 to container port 80.
+
+`docker ps / docker container ls  `
+Lists running containers. Adding -a shows all containers, including stopped ones.
+
+`docker stop <container_id>  `
+Gracefully stops a running container. Demonstrates control over container lifecycle.
+
+`docker rm <container_id>  `
+Removes a stopped container. Often paired with docker stop.
+
+`docker pull <image>  `
+Downloads an image from Docker Hub or another registry. Shows understanding of image distribution.
+
+`docker images ` 
+Lists all images stored locally. Useful for cleanup and management.
+
+`docker build -t <name>:<tag> .  `
+Builds a Docker image from a Dockerfile in the current directory. The -t flag tags the image for easier reference.
+Example: docker build -t myapp:1.0 .
+
+
+
+`docker rmi <image_id>  `
+Removes an image from the local system. Important for resource management.
+
+`docker volume ls  `
+Lists Docker volumes, which persist data beyond container lifecycle.
+
+`docker volume rm <volume_name>  `
+Deletes a volume. Shows awareness of persistent storage.
+
+`docker network ls  `
+Lists available networks. Useful for multi-container applications.
+
+`docker exec -it <container_id> bash ` 
+Opens an interactive shell inside a running container. Critical for debugging.
+
+`docker logs <container_id> ` 
+Displays logs from a container. Demonstrates ability to troubleshoot.
+
+`docker system prune  `
+Removes unused containers, networks, and dangling images. Shows resource optimization skills.
+
+`docker-compose up -d ` 
+Starts services defined in a docker-compose.yml file in detached mode.
+
+`docker-compose down  `
+Stops and removes containers, networks, and volumes created by docker-compose up.
+
+
 # Kubernetes 
 
 Kubernetes is designed for automate the process of deploying, scaling, and managing containerized applications.  Kubernetes uses YAML files to define resources.
