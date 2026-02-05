@@ -92,20 +92,21 @@ AWS uses different security models depending on how you connect.
 When I connect to an EC2 instance using SSH or SCP, the security is enforced at the network and identity level. I authenticate using an SSH key pair, where the private key stays with me and the public key is registered with AWS. The EC2 instance itself is protected by Security Groups, which act as virtual firewalls. For example, I would configure the Security Group to allow inbound traffic on port 22 only from my office IP range or through a VPN.  
 #### Step 1: Generate SSH Key Pair Locally
 On your local machine (Linux/Mac):
-<pre style="white-space: pre-wrap; word-wrap: break-word; background-color: #f6f8fa; border-radius: 6px; padding: 16px;">
+```bash
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/my-ec2-key
-</pre>
+```
 
 Keep the private key safe; only upload the public key. 
-<pre style="white-space: pre-wrap; word-wrap: break-word; background-color: #f6f8fa; border-radius: 6px; padding: 16px;">
+```bash
 aws ec2 import-key-pair --key-name my-ec2-key --public-key-material file://~/.ssh/my-ec2-key.pub
-</pre>
+```
 This command does not mention any EC2 instance name or ID. That’s because this step is not tied to a specific instance — it’s about registering the key pair with AWS.
 
 Later, when you launch an EC2 instance, you specify the key pair name:
-<pre style="white-space: pre-wrap; word-wrap: break-word; background-color: #f6f8fa; border-radius: 6px; padding: 16px;">
+```bash
 aws ec2 run-instances --image-id ami-12345678 --instance-type t2.micro --key-name my-ec2-key ...
-</pre>
+
+```
 ### How it looks in the AWS Dashboard
     Go to EC2 → Instances → Launch Instance.
 
@@ -117,10 +118,10 @@ aws ec2 run-instances --image-id ami-12345678 --instance-type t2.micro --key-nam
 
     On your local machine, you use the private key (~/.ssh/my-ec2-key) to connect via SSH.
 
-<pre style="white-space: pre-wrap; word-wrap: break-word; background-color: #f6f8fa; border-radius: 6px; padding: 16px;">
+```bash
 ssh -i ~/.ssh/my-ec2-key ubuntu@<EC2-Public-IP>
 
-</pre>
+```
 When my application, such as a Go binary, needs to upload data to S3 or send messages to SQS, the security model is different. Instead of relying on SSH keys, AWS uses IAM roles and policies to control access. I would assign an IAM role to the EC2 instance or container running the Go code, and that role would grant temporary credentials through the AWS Security Token Service. These credentials are short‑lived and scoped to specific actions, such as `s3:PutObject` for uploading files or `sqs:SendMessage` for sending messages. 
 
 ```json
@@ -170,9 +171,9 @@ However, SSL termination means that traffic between the load balancer and backen
 - **With end-to-end encryption:** Client → HTTPS → ELB (decrypted) → HTTPS → EC2
 ---
 ## Build Go Binaries
-<pre style="white-space: pre-wrap; word-wrap: break-word; background-color: #f6f8fa; border-radius: 6px; padding: 16px;">
+```bash
 GOOS=linux GOARCH=amd64 go build -o user main.go
-</pre>
+```
 
 This command is telling the Go compiler to **cross‑compile** a program for a specific target operating system and architecture.
 
@@ -386,10 +387,10 @@ Lambda doesn’t natively expose an HTTP endpoint. API Gateway acts as the front
 The handler in an AWS Lambda function is essentially the entry point—the method that gets executed when your function is invoked.
 
 To deploy this Lambda function, we need to: Build the Go executable and Create the deployment package: 
-<pre style="white-space: pre-wrap; word-wrap: break-word; background-color: #f6f8fa; border-radius: 6px; padding: 16px;">
+```bash
 GOOS=linux GOARCH=amd64 go build -o main
 zip function.zip main 
-</pre>
+```
 
 
 - Upload the function.zip file to Lambda Console. 
