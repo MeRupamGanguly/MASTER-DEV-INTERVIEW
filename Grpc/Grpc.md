@@ -1,4 +1,16 @@
+# GRPC
+
+- gRPC is a high-performance, open-source RPC framework developed by Google. At its core, it uses HTTP/2 as the transport protocol, which gives it several advantages: multiplexed streams, server push, and efficient connection management. It relies on Protocol Buffers (protobuf) as the interface definition language, which ensures strongly typed contracts and backward compatibility across services
+
 - Protocol Buffers are a language-neutral, platform-neutral serialization mechanism developed by Google. It is used by gRPC to define service contracts and message formats. 
+
+- gNMI is a protocol defined by OpenConfig that uses gRPC for communication between network clients and devices. : Provides a unified way to configure devices, retrieve operational state, and subscribe to telemetry data.  Relies on YANG models for structured, vendor-neutral representation of configuration and state. Supports multiple encodings like JSON, JSON_IETF, Protobuf, and ASCII.
+
+- YANG → Protobuf: In network automation, YANG defines the model (e.g., interface configuration, BGP state). Protobuf encodes the actual data when transported via gRPC/gNMI.
+
+- YANG and Protobuf solve different problems. YANG is about modeling—defining what data exists, its hierarchy, and constraints, especially in networking. Protobuf is about serialization—how that data is efficiently transmitted between systems. In practice, I’ve used YANG models to ensure vendor-neutral configuration and telemetry definitions, and then relied on gNMI with Protobuf encoding to actually stream that data across services. This separation of concerns—model vs. transport—makes systems both interoperable and performant.
+
+
 
 - Unary RPC – Client sends one request, gets one response. Server streaming – Client sends one request, server sends a stream of responses. Client streaming – Client sends a stream of requests, server responds once. Bi-directional streaming – Both client and server send a stream of messages.
 

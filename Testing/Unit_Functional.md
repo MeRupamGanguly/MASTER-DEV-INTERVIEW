@@ -1,4 +1,10 @@
-# Unit Testing
+# Testing
+
+Unit Test: Tests a single function/method in isolation, usually with mocks (like your MockRepo).
+
+Functional Test: Tests the system’s behavior end-to-end (or at least across multiple layers), often using real dependencies (like a real DB or an in-memory DB) instead of mocks.
+
+
 ```go
 package domain
 
@@ -111,7 +117,7 @@ func (s *service) ListCounter(ctx context.Context) ([]domain.Counter, error) {
 }
 
 ```
-
+## Unit Test Case
 
 ```go
 package service
@@ -208,6 +214,87 @@ func TestService_AddCounter_Testify(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "disk full")
 	})
+}
+
+```
+
+## Functional Test Case
+
+Test multiple layers together.
+- Service + Repository + Domain objects.
+
+```go
+package service_test
+
+import (
+    "context"
+    "demo/domain"
+    "demo/service"
+    "testing"
+
+    "github.com/stretchr/testify/assert"
+)
+
+// InMemoryRepo simulates a real DB for functional testing
+type InMemoryRepo struct {
+    counters map[int]domain.Counter
+    nextID   int
+}
+
+func NewInMemoryRepo() *InMemoryRepo {
+    return &InMemoryRepo{
+        counters: make(map[int]domain.Counter),
+        nextID:   1,
+    }
+}
+
+func (r *InMemoryRepo) AddCounter(ctx context.Context) error {
+    r.counters[r.nextID] = domain.Counter{Id: r.nextID}
+    r.nextID++
+    return nil
+}
+
+func (r *InMemoryRepo) GetCounter(ctx context.Context, id int) (domain.Counter, error) {
+    c, ok := r.counters[id]
+    if !ok {
+        return domain.Counter{}, errors.New("not found")
+    }
+    return c, nil
+}
+
+func (r *InMemoryRepo) ListCounter(ctx context.Context) ([]domain.Counter, error) {
+    list := []domain.Counter{}
+    for _, c := range r.counters {
+        list = append(list, c)
+    }
+    return list, nil
+}
+
+func TestService_Functional(t *testing.T) {
+    ctx := context.TODO()
+    repo := NewInMemoryRepo()
+    svc := service.NewService(repo)
+
+    // Step 1: Add counters
+    err := svc.AddCounter(ctx)
+    assert.NoError(t, err)
+
+    err = svc.AddCounter(ctx)
+    assert.NoError(t, err)
+
+    // Step 2: List counters
+    list, err := svc.ListCounter(ctx)
+    assert.NoError(t, err)
+    assert.Len(t, list, 2)
+
+    // Step 3: Get specific counter
+    c, err := svc.GetCounter(ctx, 1)
+    assert.NoError(t, err)
+    assert.Equal(t, 1, c.Id)
+
+    // Step 4: Try to get non-existent counter
+    _, err = svc.GetCounter(ctx, 99)
+    assert.Error(t, err)
 }
 
 ```
