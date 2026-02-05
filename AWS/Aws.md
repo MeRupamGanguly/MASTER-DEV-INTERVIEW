@@ -204,8 +204,19 @@ scp -i my.pem user ec2-user@124:23:21:12
 - Standard Topic High throughput — supports millions of messages per second. At-least-once delivery — messages may be duplicated. No guaranteed order — messages can arrive out of sequence. Supports multiple protocols — SQS, Lambda, HTTP/S, SMS, email, mobile push. Use Cases: Real-time alerts, fan-out messaging, background processing.
 - FIFO Topic (First-In-First-Out) Strict ordering — messages are delivered exactly as published. Exactly-once delivery — no duplicates. Limited subscriptions — only supports FIFO SQS queues. Lower throughput — up to 300 messages/sec or 10 MB/sec. Use Cases: Financial transactions, inventory updates, workflows needing order.
 
+
 ---
+
 ## End-to-End AWS Audio Processing Pipeline in Go
+
+
+I used S3 to store music tracks, metadata, and other assets (like album covers) uploaded. When a Label uploads a new song and artwork and metadata, the file gets stored in an S3 bucket. This also triggered events for further processing using Lambda.
+
+A Lambda function would automatically get triggered to generate different versions of the track (e.g., high-quality Flac, low-quality mp3, etc.) and store the processed files back in S3. Lambda helps here because it is serverless, automatically scaling as needed without the overhead of managing servers.
+
+When Lambda finishes processing the song, it places a message in an SQS queue, signaling that the song is ready for distribution. Another service picks up the message from the queue to update the song's metadata in the database.
+
+When the music processing is completed, an SNS message is sent to the artist to notify them that their track is live and available.
 
 ## Flow
 1. **Client uploads file** → HTTP server stores file in **S3 input bucket** using multipart upload.  
