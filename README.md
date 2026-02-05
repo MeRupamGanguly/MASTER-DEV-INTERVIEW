@@ -43,14 +43,6 @@ Welcome to **MASTER-DEV-INTERVIEW**, a comprehensive resource designed to prepar
 
 ---
 
-## 📂 Structure
-- `golang/` → Advanced Go concepts and traps.
-- `messaging/` → Kafka and RabbitMQ deep dives.
-- `databases/` → SQL and Redis advanced usage.
-- `cloud/` → AWS services and architecture.
-- `grpc/` → gRPC fundamentals and advanced patterns.
-
----
 
 ## 🤝 Contributions
 We welcome contributions! Please open issues or submit pull requests to expand coverage, add examples, or improve explanations.

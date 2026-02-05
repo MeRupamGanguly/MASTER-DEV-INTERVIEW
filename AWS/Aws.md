@@ -51,6 +51,40 @@ The key difference is that Regions provide geographic separation, while Availabi
 
 ---
 
+## AWS ASG vs ELB: Detailed Comparison
+
+An **Auto Scaling Group (ASG)** and an **Elastic Load Balancer (ELB)** are two core AWS services that often work together, but they serve different purposes.  
+
+An **ASG** is responsible for scaling compute resources. It monitors metrics such as CPU utilization or request counts, and automatically increases or decreases the number of EC2 instances based on defined policies. For example, during peak traffic hours, an ASG might launch additional EC2 instances to handle the load, and then terminate them when demand drops. This ensures cost efficiency and elasticity. ASGs also improve resilience by automatically replacing unhealthy instances, maintaining the desired capacity at all times.
+
+An **ELB**, on the other hand, is responsible for distributing traffic. It acts as a single entry point for clients and balances incoming requests across multiple EC2 instances in one or more Availability Zones. ELBs improve application availability by ensuring that traffic is not sent to unhealthy instances. They also support advanced features like SSL termination, sticky sessions, and cross-zone load balancing. ELBs come in different types: Application Load Balancer (ALB) for HTTP/HTTPS traffic, Network Load Balancer (NLB) for ultra-low latency TCP/UDP traffic, and Gateway Load Balancer (GLB) for third-party appliances.
+
+The key difference is that **ASG manages the number of instances**, while **ELB manages how traffic is distributed among those instances**. When combined, they provide both scalability and high availability. For example, an ASG can scale out EC2 instances during a traffic spike, and the ELB will automatically start routing requests to the new instances without manual intervention. This partnership is what makes AWS architectures resilient and cost-effective.
+
+---
+
+## Comparison Table
+
+| **Feature** | **Auto Scaling Group (ASG)** | **Elastic Load Balancer (ELB)** |
+|-------------|-------------------------------|---------------------------------|
+| **Purpose** | **Automatically adjusts EC2 capacity** | **Distributes traffic across instances** |
+| **Focus** | **Scalability and elasticity** | **High availability and fault tolerance** |
+| **Key Function** | **Launches/terminates EC2 instances** | **Routes requests to healthy targets** |
+| **Trigger** | **Metrics like CPU, requests, health checks** | **Incoming client traffic** |
+| **Resilience** | **Replaces unhealthy instances automatically** | **Stops sending traffic to unhealthy instances** |
+| **Types** | **Scaling policies: target tracking, step, scheduled** | **ALB, NLB, GLB** |
+| **Integration** | **Works with ELB for traffic distribution** | **Works with ASG for scaling capacity** |
+
+---
+# AWS Security
+
+### IAM vs Security Groups
+AWS Identity and Access Management (IAM) and Security Groups (SG) are both security mechanisms, but they operate at different layers. IAM is about *who* can access AWS resources and *what actions* they can perform. It manages users, roles, and policies, enforcing the principle of least privilege. For example, IAM can allow a developer to launch EC2 instances but prevent them from deleting S3 buckets.  
+
+Security Groups, on the other hand, are virtual firewalls that control *network traffic* to and from EC2 instances. They define rules for inbound and outbound traffic based on IP addresses, ports, and protocols. For example, a security group might allow HTTP traffic on port 80 from the internet but restrict SSH access to a specific IP range.  
+
+In short, IAM secures access at the identity and API level, while Security Groups secure access at the network level. Together, they form complementary layers of defense in AWS architectures.
+
 ### AWS Security Mechanisms: SSH/SCP vs Service Access (S3, SQS)
 
 AWS uses different security models depending on how you connect.  
@@ -123,31 +157,6 @@ When my application, such as a Go binary, needs to upload data to S3 or send mes
 In summary, EC2 access through SSH or SCP relies on key pairs and Security Groups to secure host‑level connections, while service access to S3 or SQS relies on IAM roles, scoped policies, and temporary credentials to secure application‑level interactions. This distinction highlights how AWS separates infrastructure security from service security, and it shows that I can design architectures that protect both human users and applications effectively.
 
 
-## AWS ASG vs ELB: Detailed Comparison
-
-An **Auto Scaling Group (ASG)** and an **Elastic Load Balancer (ELB)** are two core AWS services that often work together, but they serve different purposes.  
-
-An **ASG** is responsible for scaling compute resources. It monitors metrics such as CPU utilization or request counts, and automatically increases or decreases the number of EC2 instances based on defined policies. For example, during peak traffic hours, an ASG might launch additional EC2 instances to handle the load, and then terminate them when demand drops. This ensures cost efficiency and elasticity. ASGs also improve resilience by automatically replacing unhealthy instances, maintaining the desired capacity at all times.
-
-An **ELB**, on the other hand, is responsible for distributing traffic. It acts as a single entry point for clients and balances incoming requests across multiple EC2 instances in one or more Availability Zones. ELBs improve application availability by ensuring that traffic is not sent to unhealthy instances. They also support advanced features like SSL termination, sticky sessions, and cross-zone load balancing. ELBs come in different types: Application Load Balancer (ALB) for HTTP/HTTPS traffic, Network Load Balancer (NLB) for ultra-low latency TCP/UDP traffic, and Gateway Load Balancer (GLB) for third-party appliances.
-
-The key difference is that **ASG manages the number of instances**, while **ELB manages how traffic is distributed among those instances**. When combined, they provide both scalability and high availability. For example, an ASG can scale out EC2 instances during a traffic spike, and the ELB will automatically start routing requests to the new instances without manual intervention. This partnership is what makes AWS architectures resilient and cost-effective.
-
----
-
-## Comparison Table
-
-| **Feature** | **Auto Scaling Group (ASG)** | **Elastic Load Balancer (ELB)** |
-|-------------|-------------------------------|---------------------------------|
-| **Purpose** | **Automatically adjusts EC2 capacity** | **Distributes traffic across instances** |
-| **Focus** | **Scalability and elasticity** | **High availability and fault tolerance** |
-| **Key Function** | **Launches/terminates EC2 instances** | **Routes requests to healthy targets** |
-| **Trigger** | **Metrics like CPU, requests, health checks** | **Incoming client traffic** |
-| **Resilience** | **Replaces unhealthy instances automatically** | **Stops sending traffic to unhealthy instances** |
-| **Types** | **Scaling policies: target tracking, step, scheduled** | **ALB, NLB, GLB** |
-| **Integration** | **Works with ELB for traffic distribution** | **Works with ASG for scaling capacity** |
-
----
 
 ## SSL Termination in AWS
 
@@ -157,12 +166,9 @@ The main advantage of SSL termination is **performance and simplicity**. By offl
 
 However, SSL termination means that traffic between the load balancer and backend servers is unencrypted. This is acceptable in many cases because AWS ensures that traffic inside a VPC is secure and isolated. But for workloads that require **end-to-end encryption** (such as financial or healthcare applications), AWS supports **SSL passthrough** or **re-encryption**, where the load balancer decrypts traffic and then re-encrypts it before sending it to backend servers.
 
----
-
 ## Example
 - **With SSL termination:** Client → HTTPS → ELB (decrypted) → HTTP → EC2  
-- **With end-to-end encryption:** Client → HTTPS → ELB (decrypted) → HTTPS → EC2  
-
+- **With end-to-end encryption:** Client → HTTPS → ELB (decrypted) → HTTPS → EC2
 ---
 ## Build Go Binaries
 ```bash

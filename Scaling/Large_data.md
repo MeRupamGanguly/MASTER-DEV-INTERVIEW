@@ -176,9 +176,8 @@ Where to Use Which
 ## Websockets
 - gRPC and WebSockets both enable real-time, bidirectional communication, but they serve different purposes: gRPC is optimized for service-to-service RPC with strong typing and code generation, while WebSockets are better suited for client-facing applications needing flexible, persistent connections.
 
-# Send millions of rows reliably by streaming them in chunks (NDJSON/CSV), using bulk/batch endpoints or async ingestion (message queue), and designing both client and server for backpressure, idempotency, and efficient DB bulk writes.
-
-
+# Send millions of rows 
+Send millions of rows reliably by streaming them in chunks (NDJSON/CSV), using bulk/batch endpoints or async ingestion (message queue), and designing both client and server for backpressure, idempotency, and efficient DB bulk writes.
 
 ## Streaming NDJSON or CSV
 What  
