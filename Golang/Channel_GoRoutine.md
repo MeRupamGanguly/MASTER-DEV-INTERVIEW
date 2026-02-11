@@ -328,6 +328,236 @@ Third call result: 12
 
 
 
+## Ex 1: Vagrant Goroutine: The go routine Never joined to main again
+```go
+package main
+
+import "fmt"
+
+func doSomething(data int) {
+	fmt.Println("The Data is ", data)
+}
+
+func main() {
+	go doSomething(8)
+}
+
+```
+To solve this, we have 3 ways.
+
+- We can give time to main so go-routine get time to do its work.
+```go
+func main() {
+	go doSomething(8)
+	time.Sleep(time.Second)
+}
+````
+- We can joined the go-routine by WaitGroup
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func doSomething(data int, wg *sync.WaitGroup) {
+	fmt.Println("The Data is ", data)
+	wg.Done()
+}
+
+func main() {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go doSomething(8, &wg)
+	wg.Wait()
+}
+```
+- Use Channel as a Done Signal from go-routine
+```go
+package main
+
+import (
+	"fmt"
+)
+
+func doSomething(data int, ch chan int) {
+	fmt.Println("The Data is ", data)
+	ch <- 1
+}
+
+func main() {
+	ch := make(chan int)
+	go doSomething(8, ch)
+	<-ch
+}
+```
+## Ex 2: Sending and Receiving Data in go-routines.
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func main() {
+	tasks := make(chan int)
+	result := make(chan int)
+	wg := sync.WaitGroup{}
+	// Worker go-rountine.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := range tasks {
+			result <- i * i
+		}
+		close(result)
+	}()
+	// Before sending any data to channel we need to spawn our reader as channel is not buffered.
+	go func() {
+		for i := range result {
+			fmt.Println("result came from Worker :", i)
+		}
+	}()
+	// Sending Data to channel
+	for i := 0; i < 10; i++ {
+		tasks <- i
+	}
+	close(tasks)
+	wg.Wait()
+}
+
+```
+You get Ordered Result like 0,1,4,9,16,25,36,49,64,81
+
+```go
+// ... worker started here ...
+
+wg.Wait()      // 1. Main stops here to wait for workers
+close(results) // 2. This line is never reached because...
+
+// 3. ...the workers are blocked! 
+// They can't finish because the 'results' channel is full 
+// and nobody is reading from it yet.
+for res := range results { 
+    fmt.Println(res)
+}
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func main() {
+	tasks := make(chan int)
+	result := make(chan int)
+	wg := sync.WaitGroup{}
+	// 3 Worker go-rountines so we can devide the tasks and improve time-consumption.
+	for i := 0; i < 3; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range tasks {
+				result <- i * i
+			}
+		}()
+	}
+	// Before sending any data to channel we need to spawn our reader as channel is not buffered.
+	go func() {
+		for i := range result {
+			fmt.Println("result came from Worker :", i)
+		}
+	}()
+	// Sending Data to channel
+	for i := 0; i < 10; i++ {
+		tasks <- i
+	}
+	close(tasks) // You tell the workers, "No more work is coming."
+	wg.Wait()
+	close(result)
+}
+```
+You get UN-Ordered Result like 0,9,4,16,16,25,81,1,64,49
+- In a concurrent system, the unordered output is actually a sign that your workers are doing their job! Since different goroutines are scheduled at different times by the Go runtime, they finish their "work" at different speeds, creating a "race" to the result channel.
+
+- A range loop over a channel continues until the channel is closed. If you don't call close(tasks), the workers will stay blocked at the range line forever, waiting for more data.
+- If you called wg.Wait() before close(tasks), the main goroutine would stop and wait for the workers to finish. But the workers are waiting for the main goroutine to either send more data or close the channel. Neither side can move forward.
+- In Go, sending to a closed channel causes a panic.
+- Even after you close the tasks channel, the workers might still be calculating i * i or waiting to send their final result into the result channel.
+- wg.Wait() ensures that all three workers have completely finished their logic and exited. Once wg.Wait() returns, you are 100% sure that no more goroutines are trying to send data to the result channel.
+
+
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+type Result struct {
+	Index int
+	Data  int
+}
+
+func main() {
+	tasks := make(chan int)
+	result := make(chan Result)
+	wg := sync.WaitGroup{}
+	// 3 Worker go-rountines so we can devide the tasks and improve time-consumption.
+	for i := 0; i < 3; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for t := range tasks {
+				result <- Result{Index: t, Data: t * t}
+			}
+		}()
+	}
+	// Before sending any data to channel we need to spawn our reader as channel is not buffered.
+	resultArr := make([]int, 10)
+	go func() {
+		for i := range result {
+			resultArr[i.Index] = i.Data
+
+		}
+	}()
+	// Sending Data to channel
+	for i := 0; i < 10; i++ {
+		tasks <- i
+	}
+	close(tasks)
+	wg.Wait()
+	close(result)
+
+	// Printing the Ordered Data
+	for _, i := range resultArr {
+		fmt.Println("result came from Worker :", i)
+	}
+}
+
+```
+You get Ordered Result like 0,1,4,9,16,25,36,49,64,81
+
+
+Imagine you want to process the results in the main function using a range loop. If you put wg.Wait() before the loop, the program hangs. If you put it after, the loop never ends.
+
+By moving the "wait and close" logic into its own goroutine, you allow the main function to immediately start reading from the results channel.
+
+
+```go
+go func() {
+    wg.Wait()       // 1. Wait until the counter hits ZERO
+    close(result)   // 2. ONLY THEN, manually flip the "closed" switch
+}()
+```
+- The close doesn't "know" it should wait for the workers; you forced it to wait by putting it behind the wg.Wait() line.
+
 
 ## Fan-Out / Fan-In Pattern
 
