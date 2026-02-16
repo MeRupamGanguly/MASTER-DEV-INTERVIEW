@@ -603,6 +603,104 @@ func main() {
 }
 
 ```
+## Prime Printer
+```go
+func IsPrime(n int) bool {
+	for i := 2; i < n; i++ {
+		if n%i == 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func isPrimeHelper(ch chan int, res chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for d := range ch {
+		// fmt.Println("Number ", d, "Is Prime ", IsPrime(d))
+		if IsPrime(d) {
+			res <- d
+		}
+	}
+}
+func main() {
+	ch := make(chan int)
+	res := make(chan int)
+	wg := sync.WaitGroup{}
+	// Writer
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer close(ch)
+		for i := 2; i <= 20; i++ {
+			ch <- i
+		}
+	}()
+	// Worker
+	wg.Add(1)
+	go isPrimeHelper(ch, res, &wg)
+	// Reader
+	go func() {
+		for d := range res {
+			fmt.Println(d)
+		}
+	}()
+	wg.Wait()
+	defer close(res)
+}
+```
+
+## Pattern Print
+
+```bash
+1, 4, 7, 10
+2, 5, 8
+3, 6, 9
+```
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+)
+func main() {
+	ch1 := make(chan int)
+	ch2 := make(chan int)
+	ch3 := make(chan int)
+	wg := sync.WaitGroup{}
+	// Writers
+	writer := func(ch chan int, c int, wg *sync.WaitGroup) {
+		defer wg.Done()
+		defer close(ch)
+		for i := 0; c+i < 11; i = i + 3 {
+			ch <- c + i
+		}
+	}
+	//
+	wg.Add(3)
+	go writer(ch1, 1, &wg)
+	go writer(ch2, 2, &wg)
+	go writer(ch3, 3, &wg)
+
+	// Readers
+	printChannel := func(ch chan int) {
+		firstChar := true
+		for d := range ch {
+			if !firstChar {
+				fmt.Print(", ")
+			}
+			fmt.Print(d)
+			firstChar = false
+		}
+		fmt.Println()
+	}
+	printChannel(ch1)
+	printChannel(ch2)
+	printChannel(ch3)
+	wg.Wait()
+}
+```
 
 ## Worker Pool Pattern
 
@@ -647,7 +745,152 @@ func main() {
 }
 
 ```
+## Prime Printer Worker Pool
+```go
+func IsPrime(n int) bool {
+	for i := 2; i < n; i++ {
+		if n%i == 0 {
+			return false
+		}
+	}
+	return true
+}
 
+func isPrimeHelper(i int, ch chan int, res chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for d := range ch {
+		fmt.Println("Number ", d, "Is Prime ", IsPrime(d), "Worker ID ", i)
+		if IsPrime(d) {
+			res <- d
+		}
+	}
+}
+func main() {
+	ch := make(chan int)
+	res := make(chan int)
+	wg := sync.WaitGroup{}
+	// Writer
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer close(ch)
+		for i := 2; i <= 20; i++ {
+			ch <- i
+		}
+	}()
+	// Worker
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go isPrimeHelper(i, ch, res, &wg)
+	}
+
+	// Reader
+	go func() {
+		for d := range res {
+			fmt.Println(d)
+		}
+	}()
+	wg.Wait()
+	defer close(res)
+}
+```
+## Chunk
+```go
+func IsPrime(n int) bool {
+	for i := 2; i < n; i++ {
+		if n%i == 0 {
+			return false
+		}
+	}
+	return true
+}
+func chunk(start int, end int, res chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for i := start; i < end; i++ {
+		if IsPrime(i) {
+			res <- i
+		}
+	}
+}
+func main() {
+	res := make(chan int)
+	wg := sync.WaitGroup{}
+	totalTask := 100000
+	chunkSize := 200
+	for start := 2; start <= totalTask; start = start + chunkSize {
+		end := start + chunkSize - 1
+		if end > totalTask {
+			end = totalTask
+		}
+		wg.Add(1)
+		go chunk(start, end, res, &wg)
+	}
+	go func() {
+		wg.Wait()
+		close(res)
+	}()
+
+	for d := range res {
+		fmt.Println(d)
+	}
+}
+```
+## Chunk Ordered
+
+```go
+type MyStruct struct {
+	Index  int
+	Number []int
+}
+
+func IsPrime(n int) bool {
+	for i := 2; i < n; i++ {
+		if n%i == 0 {
+			return false
+		}
+	}
+	return true
+}
+func chunk(start int, end int, res chan MyStruct, wg *sync.WaitGroup, id int) {
+	defer wg.Done()
+	arr := []int{}
+	for i := start; i < end; i++ {
+		if IsPrime(i) {
+			arr = append(arr, i)
+		}
+	}
+	res <- MyStruct{Index: id, Number: arr}
+}
+func main() {
+	res := make(chan MyStruct)
+	wg := sync.WaitGroup{}
+	totalTask := 100000
+	chunkSize := 200
+	id := 0
+	for start := 2; start <= totalTask; start = start + chunkSize {
+		end := start + chunkSize - 1
+		if end > totalTask {
+			end = totalTask
+		}
+		wg.Add(1)
+		go chunk(start, end, res, &wg, id)
+		id++
+	}
+	go func() {
+		wg.Wait()
+		close(res)
+	}()
+	result := make(map[int][]int)
+	for d := range res {
+		result[d.Index] = d.Number
+	}
+	for i := 0; i < id; i++ {
+		for _, n := range result[i] {
+			fmt.Println(n)
+		}
+	}
+}
+```
 ## Pipeline Pattern
 
 Data flows through a series of stages, each stage in its own goroutine. Each stage transforms the data and passes it to the next channel. Useful for streaming transformations.
@@ -856,6 +1099,70 @@ func main() {
 	}
 }
 
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func even(v int, ch chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if v%2 == 0 {
+		ch <- v
+	}
+}
+func odd(v int, ch chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if v%2 != 0 {
+		ch <- v
+	}
+}
+func main() {
+	arr := []int{4, 6, 7, 87, 56, 11}
+	eCh := make(chan int)
+	oCh := make(chan int)
+	ewg := sync.WaitGroup{}
+	owg := sync.WaitGroup{}
+	for i := range arr {
+		ewg.Add(1)
+		go even(arr[i], eCh, &ewg)
+	}
+	go func() {
+		ewg.Wait()
+		close(eCh)
+	}()
+	for d := range eCh {
+		fmt.Println("EVEN ", d)
+	}
+	for i := range arr {
+		owg.Add(1)
+		go odd(arr[i], oCh, &owg)
+	}
+	go func() {
+		owg.Wait()
+		close(oCh)
+	}()
+	for d := range oCh {
+		fmt.Println("ODD ", d)
+	}
+
+	/*
+		// Even -> Odd -> Even -> Odd
+		for {
+			eNum, eok := <-eCh
+			oNum, dok := <-oCh
+			if !eok && !dok {
+				break
+			}
+			fmt.Println("EVEN ", eNum)
+			fmt.Println("ODD ", oNum)
+		}
+	*/
+}
 ```
 
 In a select statement, a case with a nil channel is disabled. It will never be chosen. Default case will execute. Accidentally reading from a nil channel without a select causes a deadlock:
