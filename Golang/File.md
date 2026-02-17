@@ -75,7 +75,273 @@ if err := scanner.Err(); err != nil {
     fmt.Println("Error scanning:", err)
 }
 ```
+## Concurrent logging and log-reading
+```go
+package main
 
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"sync"
+	"time"
+)
+
+type MyLogger struct {
+	logg *log.Logger
+	MU   sync.Mutex
+}
+
+func (l *MyLogger) LOG(msg string) {
+	l.MU.Lock()
+	l.logg.Print(msg)
+	l.MU.Unlock()
+}
+
+func NewMyLogger(f string) *MyLogger {
+	file, err := os.OpenFile(f, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+	return &MyLogger{
+		logg: log.New(file, "", log.LstdFlags),
+	}
+}
+
+func ReadLog(id int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	f, err := os.OpenFile("m_log.log", os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
+	}
+	reading := bufio.NewReader(f)
+	for {
+		line, err := reading.ReadString('\n')
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			fmt.Println("err")
+			time.Sleep(10 * time.Millisecond)
+		} else {
+			fmt.Println("Reader Name ", id, "Reading", line)
+			time.Sleep(120 * time.Millisecond)
+		}
+	}
+}
+
+func main() {
+	l := NewMyLogger("m_log.log")
+	wg := sync.WaitGroup{}
+	for i := range 3 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range 20 {
+				msg := fmt.Sprint("Hi this is log from GOROUTINE NUMBER: ", i, " Line Number: ", j)
+				l.LOG(msg)
+				time.Sleep(100 * time.Millisecond)
+			}
+		}()
+
+		time.Sleep(time.Second)
+		wg.Add(3)
+		go ReadLog(1, &wg)
+		go ReadLog(2, &wg)
+		go ReadLog(3, &wg)
+	}
+	wg.Wait()
+}
+```
+
+Instead of multiple goroutines writing to the same file and locking with a mutex, you can send log messages into a channel.
+
+```go
+package main
+
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"sync"
+	"time"
+)
+
+type MyLogger struct {
+	logg *log.Logger
+	ch   chan string
+}
+
+func (l *MyLogger) LOGTOFILE(wg *sync.WaitGroup) {
+	defer wg.Done()
+	for d := range l.ch {
+		l.logg.Print(d)
+	}
+}
+
+func NewMyLogger(f string) *MyLogger {
+	file, err := os.OpenFile(f, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+	return &MyLogger{
+		logg: log.New(file, "", log.LstdFlags),
+		ch:   make(chan string, 100),
+	}
+}
+
+func ReadLog(id int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	f, err := os.OpenFile("m_log.log", os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
+	}
+	reading := bufio.NewReader(f)
+	for {
+		line, err := reading.ReadString('\n')
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			fmt.Println("err")
+			time.Sleep(10 * time.Millisecond)
+		} else {
+			fmt.Println("Reader Name ", id, "Reading", line)
+			time.Sleep(120 * time.Millisecond)
+		}
+	}
+}
+
+func main() {
+	l := NewMyLogger("m_log.log")
+	wg := sync.WaitGroup{}
+	wgW := sync.WaitGroup{}
+	wgW.Add(1)
+	go l.LOGTOFILE(&wgW)
+	for i := range 3 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range 20 {
+				msg := fmt.Sprint("Hi this is log from GOROUTINE NUMBER: ", i, " Line Number: ", j)
+				l.ch <- msg
+				time.Sleep(100 * time.Millisecond)
+			}
+		}()
+
+		time.Sleep(time.Second)
+		wg.Add(3)
+		go ReadLog(1, &wg)
+		go ReadLog(2, &wg)
+		go ReadLog(3, &wg)
+	}
+	wg.Wait()
+	go func() {
+		wgW.Wait()
+		close(l.ch)
+	}()
+}
+```
+
+```go
+package main
+
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"sync"
+	"time"
+)
+
+type MyLogger struct {
+	logg *log.Logger
+	ch   chan string
+	wg   *sync.WaitGroup
+}
+
+func (l *MyLogger) LOGTOFILE() {
+	defer l.wg.Done()
+	for d := range l.ch {
+		l.logg.Print(d)
+	}
+}
+func (l *MyLogger) Close() {
+	close(l.ch)
+	l.wg.Wait()
+}
+
+func NewMyLogger(f string) *MyLogger {
+	file, err := os.OpenFile(f, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	mylo := MyLogger{
+		logg: log.New(file, "", log.LstdFlags),
+		ch:   make(chan string, 100),
+		wg:   &sync.WaitGroup{},
+	}
+	mylo.wg.Add(1)
+	go mylo.LOGTOFILE()
+	return &mylo
+}
+
+func ReadLog(id int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	f, err := os.OpenFile("m_log.log", os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
+	}
+	reading := bufio.NewReader(f)
+	for {
+		line, err := reading.ReadString('\n')
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			fmt.Println("err")
+			time.Sleep(10 * time.Millisecond)
+		} else {
+			fmt.Println("Reader Name ", id, "Reading", line)
+			time.Sleep(120 * time.Millisecond)
+		}
+	}
+}
+
+func main() {
+	l := NewMyLogger("m_log.log")
+	wg := sync.WaitGroup{}
+	for i := range 3 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range 20 {
+				msg := fmt.Sprint("Hi this is log from GOROUTINE NUMBER: ", i, " Line Number: ", j)
+				l.ch <- msg
+				time.Sleep(100 * time.Millisecond)
+			}
+		}()
+
+		time.Sleep(time.Second)
+		wg.Add(3)
+		go ReadLog(1, &wg)
+		go ReadLog(2, &wg)
+		go ReadLog(3, &wg)
+	}
+	wg.Wait()
+	l.Close()
+}
+```
 Multiple workers "write" to the channel simultaneously without waiting, but the channel forces those messages into a single-file line so the actual file is written one-by-one.
 
 The Many (Workers): Run in parallel, firing messages into the channel buffer.
